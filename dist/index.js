@@ -34984,7 +34984,7 @@ function createPackageManifests(cosmicPackages) {
     return cosmicPackages.map((cosmicPackage) => {
         const purl = packageurl_js.PackageURL.fromString(cosmicPackage.purl);
         const pkg = new c(purl);
-        const manifest = new g(cosmicPackage.name, `Packages/${cosmicPackage.name}.pkl`);
+        const manifest = new g(cosmicPackage.name, `${cosmicPackage.name}.pkl`);
         manifest.addDirectDependency(pkg);
         return manifest;
     });
@@ -34994,15 +34994,17 @@ function createPackageManifests(cosmicPackages) {
  */
 async function main() {
     try {
+        const packageModuleFilename = core.getInput("package-module-filename");
         const cosmicPackageDirectory = core.getInput("cosmic-package-directory");
-        const globber = await glob.create(`${cosmicPackageDirectory}/*.pkl`);
+        const globber = await glob.create(`*.pkl`);
         const files = await globber.glob();
+        const pkgManifestFiles = files.filter((file) => !file.includes(packageModuleFilename));
         // Ensure there are some .pkl files to process.
-        if (files.length === 0) {
-            core.setFailed(`No .pkl files found in directory: ${cosmicPackageDirectory}`);
+        if (pkgManifestFiles.length === 0) {
+            core.setFailed(`No valid .pkl files found in directory: ${cosmicPackageDirectory}`);
             return;
         }
-        const prodPackages = await exec.getExecOutput("pkl", ["eval", "-f", "json", ...files], { cwd: cosmicPackageDirectory });
+        const prodPackages = await exec.getExecOutput("pkl", ["eval", "-f", "json", ...pkgManifestFiles], { cwd: cosmicPackageDirectory });
         if (prodPackages.exitCode !== 0) {
             core.error(prodPackages.stderr);
             core.setFailed("'pkl eval' failed!");
@@ -35012,8 +35014,8 @@ async function main() {
         const packageManifests = createPackageManifests(cosmicPackages);
         const snapshot = new l({
             name: "cosmic-detector",
-            url: "https://github.com/willswire/cosmic/tree/main/.github/workflows/cosmic-detector",
-            version: "0.0.1",
+            url: "https://github.com/willswire/cosmic-detector",
+            version: "main",
         });
         for (const pm of packageManifests) {
             snapshot.addManifest(pm);

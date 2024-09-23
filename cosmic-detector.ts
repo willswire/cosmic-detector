@@ -61,7 +61,7 @@ export function createPackageManifests(
     const pkg = new Package(purl);
     const manifest = new Manifest(
       cosmicPackage.name,
-      `Packages/${cosmicPackage.name}.pkl`,
+      `${cosmicPackage.name}.pkl`,
     );
     manifest.addDirectDependency(pkg);
     return manifest;
@@ -73,22 +73,26 @@ export function createPackageManifests(
  */
 export async function main() {
   try {
+    const packageModuleFilename = core.getInput("package-module-filename");
     const cosmicPackageDirectory = core.getInput("cosmic-package-directory");
 
-    const globber = await glob.create(`${cosmicPackageDirectory}/*.pkl`);
+    const globber = await glob.create(`*.pkl`);
     const files = await globber.glob();
+    const pkgManifestFiles = files.filter(
+      (file) => !file.includes(packageModuleFilename),
+    );
 
     // Ensure there are some .pkl files to process.
-    if (files.length === 0) {
+    if (pkgManifestFiles.length === 0) {
       core.setFailed(
-        `No .pkl files found in directory: ${cosmicPackageDirectory}`,
+        `No valid .pkl files found in directory: ${cosmicPackageDirectory}`,
       );
       return;
     }
 
     const prodPackages = await exec.getExecOutput(
       "pkl",
-      ["eval", "-f", "json", ...files],
+      ["eval", "-f", "json", ...pkgManifestFiles],
       { cwd: cosmicPackageDirectory },
     );
     if (prodPackages.exitCode !== 0) {
@@ -100,8 +104,8 @@ export async function main() {
     const packageManifests = createPackageManifests(cosmicPackages);
     const snapshot = new Snapshot({
       name: "cosmic-detector",
-      url: "https://github.com/willswire/cosmic/tree/main/.github/workflows/cosmic-detector",
-      version: "0.0.1",
+      url: "https://github.com/willswire/cosmic-detector",
+      version: "main",
     });
 
     for (const pm of packageManifests) {

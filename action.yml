@@ -9,6 +9,10 @@ inputs:
     description: "Cosmic package directory (directory with Cosmic *.pkl files)"
     required: true
     default: ${{ github.workspace }}
+  package-module-filename:
+    description: "The name of the package module file"
+    required: true
+    default: ".package.pkl"
 runs:
   using: node20
   main: dist/index.js
